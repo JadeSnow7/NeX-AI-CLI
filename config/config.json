@@ -1,0 +1,73 @@
+{
+  "app": {
+    "name": "NeX: AI-CLI",
+    "version": "1.0.0",
+    "log_level": "info",
+    "auto_update": true
+  },
+  "system": {
+    "monitor_interval": 5000,
+    "cpu_threshold": 80.0,
+    "memory_threshold": 85.0,
+    "disk_threshold": 90.0,
+    "enable_alerts": true
+  },
+  "ai": {
+    "models_path": "./models",
+    "default_model": "system_analyzer_v1",
+    "max_memory_usage": 1073741824,
+    "inference_timeout": 30000,
+    "models": [
+      {
+        "id": "system_analyzer_v1",
+        "name": "System Analyzer v1.0",
+        "type": "SystemAnalysis",
+        "file": "system_analyzer.onnx",
+        "description": "基础系统分析模型"
+      },
+      {
+        "id": "resource_optimizer_v1",
+        "name": "Resource Optimizer v1.0", 
+        "type": "ResourceOptimization",
+        "file": "resource_optimizer.onnx",
+        "description": "资源优化建议模型"
+      }
+    ]
+  },
+  "platform": {
+    "linux": {
+      "proc_path": "/proc",
+      "sys_path": "/sys",
+      "enable_thermal": true,
+      "thermal_path": "/sys/class/thermal"
+    },
+    "windows": {
+      "use_wmi": true,
+      "enable_perfmon": true
+    },
+    "macos": {
+      "use_iokit": true,
+      "enable_activity_monitor": false
+    }
+  },
+  "cli": {
+    "colors": true,
+    "interactive_mode": false,
+    "output_format": "human",
+    "max_output_lines": 1000,
+    "command_history": true
+  },
+  "performance": {
+    "cache_enabled": true,
+    "cache_ttl": 300,
+    "parallel_monitoring": true,
+    "max_threads": 4
+  },
+  "features": {
+    "real_time_monitoring": true,
+    "ai_analysis": true,
+    "predictive_alerts": false,
+    "export_reports": true,
+    "web_interface": false
+  }
+}
