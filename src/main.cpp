@@ -333,6 +333,131 @@ void handleAICommand(const std::vector<std::string>& args) {
     }
 }
 
+// 处理命令生成的AI实现
+void handleCommandGeneration(const std::vector<std::string>& args) {
+    std::string input;
+    for (size_t i = 2; i < args.size(); ++i) {  // 跳过 "nex" 和 "command"
+        input += args[i];
+        if (i < args.size() - 1) input += " ";
+    }
+    
+    std::cout << "🤖 AI命令生成\n" << std::endl;
+    std::cout << "输入: " << input << std::endl;
+    
+#ifdef AI_ENABLED
+    auto& aiManager = AIManager::getInstance();
+    
+    if (aiManager.isInitialized()) {
+        // 使用真实的AI处理命令生成
+        auto response = aiManager.processUserInput(input);
+        
+        std::cout << "解析结果: " << response.content << std::endl;
+        std::cout << "生成命令: " << response.command << std::endl;
+        std::cout << "置信度: " << (response.confidence * 100) << "%" << std::endl;
+        std::cout << std::endl;
+        
+        if (response.success) {
+            // 询问是否执行
+            std::cout << "是否执行此命令? [Y/n]: ";
+            std::string user_response;
+            std::getline(std::cin, user_response);
+            
+            if (user_response.empty() || user_response == "y" || user_response == "Y") {
+                std::cout << "🚀 执行命令..." << std::endl;
+                int result = system(response.command.c_str());
+                if (result == 0) {
+                    std::cout << "✅ 命令执行成功" << std::endl;
+                } else {
+                    std::cout << "❌ 命令执行失败，退出码: " << result << std::endl;
+                }
+            } else {
+                std::cout << "❌ 用户取消执行" << std::endl;
+            }
+        } else {
+            std::cout << "❌ AI解析失败: " << response.error_message << std::endl;
+        }
+    } else {
+        std::cout << "⚠️  AI引擎未初始化，使用简化解析\n" << std::endl;
+        
+        // 简化的命令映射
+        std::map<std::string, std::string> simpleCommands = {
+            {"查看文件", "ls -la"},
+            {"查看目录", "ls -la"},
+            {"当前目录", "pwd"},
+            {"磁盘空间", "df -h"},
+            {"内存使用", "free -h"},
+            {"系统信息", "uname -a"},
+            {"进程列表", "ps aux"},
+            {"网络状态", "netstat -tuln"},
+            {"安装gcc", "sudo apt install gcc"},
+            {"安装python", "sudo apt install python3 python3-pip"},
+            {"安装nodejs", "sudo apt install nodejs npm"}
+        };
+        
+        std::string suggested_command = "echo '未找到匹配的命令'";
+        for (const auto& pair : simpleCommands) {
+            if (input.find(pair.first) != std::string::npos) {
+                suggested_command = pair.second;
+                break;
+            }
+        }
+        
+        std::cout << "建议命令: " << suggested_command << std::endl;
+        std::cout << "是否执行此命令? [Y/n]: ";
+        std::string user_response;
+        std::getline(std::cin, user_response);
+        
+        if (user_response.empty() || user_response == "y" || user_response == "Y") {
+            std::cout << "🚀 执行命令..." << std::endl;
+            int result = system(suggested_command.c_str());
+            if (result == 0) {
+                std::cout << "✅ 命令执行成功" << std::endl;
+            } else {
+                std::cout << "❌ 命令执行失败，退出码: " << result << std::endl;
+            }
+        } else {
+            std::cout << "❌ 用户取消执行" << std::endl;
+        }
+    }
+#else
+    std::cout << "⚠️  AI功能未编译" << std::endl;
+#endif
+}
+
+// 处理正常AI对话
+void handleAIChat(const std::vector<std::string>& args) {
+    std::string input;
+    for (size_t i = 1; i < args.size(); ++i) {
+        input += args[i];
+        if (i < args.size() - 1) input += " ";
+    }
+    
+    std::cout << "💬 AI对话模式\n" << std::endl;
+    std::cout << "用户: " << input << std::endl;
+    
+#ifdef AI_ENABLED
+    auto& aiManager = AIManager::getInstance();
+    
+    if (aiManager.isInitialized()) {
+        // 使用真实的AI进行对话（不生成命令）
+        std::string prompt = "请作为一个友好的AI助手回答用户的问题，不要生成shell命令，专注于对话和解答: " + input;
+        auto response = aiManager.processUserInput(prompt);
+        
+        std::cout << "AI: " << response.content << std::endl;
+    } else {
+        std::cout << "⚠️  AI引擎未初始化\n" << std::endl;
+        
+        // 简化的对话回应
+        std::cout << "AI: 您好！我是NeX AI助手。由于AI引擎未初始化，我只能提供基本回应。" << std::endl;
+        std::cout << "    您可以使用 'nex ai init' 来初始化AI功能。" << std::endl;
+        std::cout << "    如果您想生成Shell命令，请使用 'nex command <描述>' 格式。" << std::endl;
+    }
+#else
+    std::cout << "⚠️  AI功能未编译" << std::endl;
+    std::cout << "AI: 很抱歉，当前版本未编译AI功能。请重新编译并启用AI支持。" << std::endl;
+#endif
+}
+
 // 处理自然语言命令的AI实现
 void handleNaturalLanguageCommand(const std::vector<std::string>& args) {
     std::string input;
@@ -496,9 +621,12 @@ int main(int argc, char** argv) {
             std::cout << "  • AI异常检测" << std::endl;
             std::cout << "  • 智能优化建议" << std::endl;
             std::cout << "  • 性能趋势分析" << std::endl;
+        } else if (command == "command") {
+            // 处理命令生成请求
+            handleCommandGeneration(args);
         } else {
-            // 尝试作为自然语言命令处理
-            handleNaturalLanguageCommand(args);
+            // 处理普通AI对话
+            handleAIChat(args);
         }
         
         return 0;
