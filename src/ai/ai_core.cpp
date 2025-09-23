@@ -89,10 +89,32 @@ public:
     }
 };
 
-AIEngine::AIEngine() : pImpl(std::make_unique<Impl>()) {}
+AIEngine::AIEngine() : pImpl(std::make_unique<Impl>()) {
+#ifdef AI_ENABLED
+    llama_engine = std::make_unique<LlamaEngine>();
+#endif
+}
 AIEngine::~AIEngine() = default;
 
 bool AIEngine::loadModel(const ModelConfig& config) {
+    current_config = config;
+    current_model_type = config.type;
+    
+    if (config.type == ModelType::LOCAL_LLAMA_CPP) {
+#ifdef AI_ENABLED
+        if (llama_engine) {
+            // 转换配置格式
+            LlamaConfig llama_config;
+            llama_config.model_path = config.model_path;
+            llama_config.n_threads = 8;  // 默认线程数
+            llama_config.n_ctx = 4096;   // 默认上下文长度
+            
+            return llama_engine->loadModel(llama_config);
+        }
+#endif
+        return false;
+    }
+    
     return pImpl->loadModel(config);
 }
 
@@ -110,6 +132,15 @@ ModelType AIEngine::getCurrentModelType() const {
 }
 
 std::string AIEngine::generate(const std::string& prompt, int max_tokens) {
+    if (current_model_type == ModelType::LOCAL_LLAMA_CPP) {
+#ifdef AI_ENABLED
+        if (llama_engine && llama_engine->isModelLoaded()) {
+            return llama_engine->generate(prompt, max_tokens);
+        }
+#endif
+        return "Error: Local model not loaded";
+    }
+    
     return pImpl->generate(prompt, max_tokens);
 }
 

@@ -139,6 +139,7 @@ set(CONFIG_SOURCES
 if(AI_ENABLED)
     set(AI_SOURCES
         src/ai/ai_core.cpp
+        src/ai/llama_engine.cpp
     )
 else()
     set(AI_SOURCES)
@@ -166,6 +167,7 @@ if(AI_ENABLED)
     list(APPEND NEX_HEADERS
         include/nex/ai/ai_core.h
         include/nex/ai/ai_engine.h
+        include/nex/ai/llama_engine.h
     )
 endif()
 

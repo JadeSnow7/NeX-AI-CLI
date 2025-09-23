@@ -7,6 +7,11 @@
 #include <functional>
 #include <future>
 
+// 条件编译，只在AI功能启用时包含
+#ifdef AI_ENABLED
+#include "llama_engine.h"
+#endif
+
 namespace nex::ai {
 
 // 模型类型枚举
@@ -196,10 +201,17 @@ public:
 private:
     class Impl;
     std::unique_ptr<Impl> pImpl;
+    
+#ifdef AI_ENABLED
+    std::unique_ptr<LlamaEngine> llama_engine;  // 本地模型引擎
+#endif
+    
+    ModelType current_model_type = ModelType::LOCAL_LLAMA_CPP;
+    ModelConfig current_config;
 };
 
 // 为了兼容性，保留AIEngine别名
-using AIEngine = AIEngine;
+// using AIEngine = AIEngine;  // 这行重复了，删除
 
 // 自然语言命令解析器
 class CommandParser {
