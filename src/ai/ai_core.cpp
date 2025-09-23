@@ -13,10 +13,27 @@
 #include <future>
 #include <sys/wait.h>
 
+// 在线模型功能的可选依赖
+#ifdef ENABLE_ONLINE_MODELS
+    #ifdef __has_include
+        #if __has_include(<curl/curl.h>)
+            #include <curl/curl.h>
+            #define HAS_CURL
+        #endif
+        #if __has_include(<json/json.h>)
+            #include <json/json.h>
+            #define HAS_JSONCPP
+        #elif __has_include(<jsoncpp/json/json.h>)
+            #include <jsoncpp/json/json.h>
+            #define HAS_JSONCPP
+        #endif
+    #endif
+#endif
+
 namespace nex::ai {
 
-// LlamaEngine Implementation (Placeholder for llama.cpp integration)
-class LlamaEngine::Impl {
+// AIEngine Implementation (Placeholder for llama.cpp integration)
+class AIEngine::Impl {
 public:
     bool model_loaded = false;
     ModelConfig config;
@@ -72,33 +89,37 @@ public:
     }
 };
 
-LlamaEngine::LlamaEngine() : pImpl(std::make_unique<Impl>()) {}
-LlamaEngine::~LlamaEngine() = default;
+AIEngine::AIEngine() : pImpl(std::make_unique<Impl>()) {}
+AIEngine::~AIEngine() = default;
 
-bool LlamaEngine::loadModel(const ModelConfig& config) {
+bool AIEngine::loadModel(const ModelConfig& config) {
     return pImpl->loadModel(config);
 }
 
-bool LlamaEngine::unloadModel() {
+bool AIEngine::unloadModel() {
     pImpl->model_loaded = false;
     return true;
 }
 
-bool LlamaEngine::isModelLoaded() const {
+bool AIEngine::isModelLoaded() const {
     return pImpl->model_loaded;
 }
 
-std::string LlamaEngine::generate(const std::string& prompt, int max_tokens) {
+ModelType AIEngine::getCurrentModelType() const {
+    return pImpl->config.type;
+}
+
+std::string AIEngine::generate(const std::string& prompt, int max_tokens) {
     return pImpl->generate(prompt, max_tokens);
 }
 
-std::future<std::string> LlamaEngine::generateAsync(const std::string& prompt, int max_tokens) {
+std::future<std::string> AIEngine::generateAsync(const std::string& prompt, int max_tokens) {
     return std::async(std::launch::async, [this, prompt, max_tokens]() {
         return this->generate(prompt, max_tokens);
     });
 }
 
-void LlamaEngine::generateStream(const std::string& prompt, 
+void AIEngine::generateStream(const std::string& prompt, 
                                 std::function<void(const std::string&)> callback,
                                 int max_tokens) {
     // 模拟流式输出
@@ -113,7 +134,7 @@ void LlamaEngine::generateStream(const std::string& prompt,
     }
 }
 
-std::string LlamaEngine::getModelInfo() const {
+std::string AIEngine::getModelInfo() const {
     if (!pImpl->model_loaded) {
         return "No model loaded";
     }
@@ -126,13 +147,13 @@ std::string LlamaEngine::getModelInfo() const {
     return ss.str();
 }
 
-size_t LlamaEngine::getMemoryUsage() const {
+size_t AIEngine::getMemoryUsage() const {
     // TODO: 返回实际内存使用量
-    return pImpl->model_loaded ? 2048 * 1024 * 1024 : 0; // 2GB 模拟值
+    return pImpl->model_loaded ? 2048ULL * 1024 * 1024 : 0; // 2GB 模拟值
 }
 
 // CommandParser Implementation
-CommandParser::CommandParser(std::shared_ptr<LlamaEngine> engine) 
+CommandParser::CommandParser(std::shared_ptr<AIEngine> engine) 
     : ai_engine_(engine) {
     
     // 初始化预定义命令映射
@@ -227,7 +248,7 @@ std::vector<CommandMapping> CommandParser::findMatches(const std::string& input)
 }
 
 // SystemMonitorAI Implementation
-SystemMonitorAI::SystemMonitorAI(std::shared_ptr<LlamaEngine> engine) 
+SystemMonitorAI::SystemMonitorAI(std::shared_ptr<AIEngine> engine) 
     : ai_engine_(engine) {}
 
 SystemStatus SystemMonitorAI::collectSystemStatus() {
@@ -365,7 +386,7 @@ bool AIManager::initialize(const std::string& config_file) {
     if (initialized_) return true;
     
     // 创建AI引擎
-    engine_ = std::make_shared<LlamaEngine>();
+    engine_ = std::make_shared<AIEngine>();
     
     // 加载配置
     ModelConfig config;
@@ -426,8 +447,12 @@ std::string AIManager::getStatus() const {
     return ss.str();
 }
 
+bool AIManager::isInitialized() const {
+    return initialized_;
+}
+
 // ConversationManager Implementation
-ConversationManager::ConversationManager(std::shared_ptr<LlamaEngine> engine) 
+ConversationManager::ConversationManager(std::shared_ptr<AIEngine> engine) 
     : ai_engine_(engine) {}
 
 void ConversationManager::startConversation() {
@@ -568,6 +593,82 @@ std::pair<int, std::string> AICommandExecutor::executeShellCommand(const std::st
     
     int exit_code = pclose(pipe);
     return {WEXITSTATUS(exit_code), output};
+}
+
+// AIManager 缺失方法的实现
+ModelType AIManager::getCurrentModelType() const {
+    if (!initialized_ || !engine_) {
+        return ModelType::LOCAL_LLAMA_CPP; // 默认值
+    }
+    return engine_->getCurrentModelType();
+}
+
+bool AIManager::switchToLocalModel(const std::string& model_path, const std::string& model_type) {
+    if (!initialized_) {
+        return false;
+    }
+    
+    ModelConfig config;
+    config.type = ModelType::LOCAL_LLAMA_CPP;
+    config.model_path = model_path;
+    config.model_type = model_type;
+    config.quantized = true;
+    config.n_threads = std::thread::hardware_concurrency();
+    
+    return engine_->loadModel(config);
+}
+
+bool AIManager::switchToOnlineModel(ModelType type, const std::string& api_key, const std::string& model_name) {
+    if (!initialized_) {
+        return false;
+    }
+    
+    ModelConfig config;
+    config.type = type;
+    config.online_config.api_key = api_key;
+    config.online_config.model_name = model_name;
+    
+    // 设置默认API URL
+    switch (type) {
+        case ModelType::ONLINE_OPENAI:
+            config.online_config.api_url = "https://api.openai.com/v1/chat/completions";
+            break;
+        case ModelType::ONLINE_ANTHROPIC:
+            config.online_config.api_url = "https://api.anthropic.com/v1/messages";
+            break;
+        default:
+            config.online_config.api_url = "https://api.example.com/v1/completions";
+            break;
+    }
+    
+    return engine_->loadModel(config);
+}
+
+std::vector<std::string> AIManager::getAvailableModels() const {
+    std::vector<std::string> models;
+    
+    if (!initialized_) {
+        return models;
+    }
+    
+    // 扫描本地模型（模拟）
+    models.push_back("qwen3-coder-7b.gguf");
+    models.push_back("codellama-7b.gguf");
+    
+    // 添加在线模型
+    models.push_back("OpenAI: gpt-3.5-turbo");
+    models.push_back("OpenAI: gpt-4");
+    models.push_back("Anthropic: claude-3-sonnet");
+    
+    return models;
+}
+
+std::string AIManager::getCurrentModelInfo() const {
+    if (!initialized_ || !engine_) {
+        return "AI引擎未初始化";
+    }
+    
+    return engine_->getModelInfo();
 }
 
 } // namespace nex::ai

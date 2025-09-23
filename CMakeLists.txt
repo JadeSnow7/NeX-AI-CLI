@@ -44,9 +44,9 @@ endif()
 #     set(AI_ENABLED FALSE)
 # endif()
 
-# 暂时禁用AI功能直到llama.cpp集成完成
-set(AI_ENABLED FALSE)
-message("-- AI Features: Disabled (llama.cpp integration pending)")
+# 启用AI功能（支持在线和本地模型）
+set(AI_ENABLED TRUE)
+message("-- AI Features: Enabled (with online and local model support)")
 
 # 包含目录
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -74,6 +74,53 @@ if(PkgConfig_FOUND)
     endif()
 endif()
 
+# AI功能依赖
+if(AI_ENABLED)
+    # 添加编译定义
+    add_compile_definitions(AI_ENABLED)
+    
+    # 查找 libcurl
+    find_package(CURL QUIET)
+    if(CURL_FOUND)
+        message("-- libcurl: Found")
+        include_directories(${CURL_INCLUDE_DIRS})
+        set(AI_LIBS ${CURL_LIBRARIES})
+    else()
+        message("-- libcurl: Not found, trying to find manually")
+        find_library(CURL_LIBRARY curl)
+        if(CURL_LIBRARY)
+            set(AI_LIBS ${CURL_LIBRARY})
+            message("-- libcurl: Found manually")
+        else()
+            message(WARNING "-- libcurl: Not found, AI online features may not work")
+            set(AI_LIBS)
+        endif()
+    endif()
+    
+    # 查找 jsoncpp
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(JSONCPP jsoncpp)
+        if(JSONCPP_FOUND)
+            message("-- jsoncpp: Found")
+            include_directories(${JSONCPP_INCLUDE_DIRS})
+            link_directories(${JSONCPP_LIBRARY_DIRS})
+            list(APPEND AI_LIBS ${JSONCPP_LIBRARIES})
+        else()
+            message("-- jsoncpp: Not found via pkg-config, trying manual search")
+            find_library(JSONCPP_LIBRARY jsoncpp)
+            if(JSONCPP_LIBRARY)
+                list(APPEND AI_LIBS ${JSONCPP_LIBRARY})
+                message("-- jsoncpp: Found manually")
+            else()
+                message(WARNING "-- jsoncpp: Not found, using header-only implementation")
+            endif()
+        endif()
+    endif()
+else()
+    set(AI_LIBS)
+endif()
+
 # 源文件定义
 set(CORE_SOURCES
     src/main.cpp
@@ -88,13 +135,10 @@ set(CONFIG_SOURCES
     src/config/config.cpp
 )
 
-# AI 源文件 (暂时注释，等待llama.cpp集成)
+# AI 源文件
 if(AI_ENABLED)
     set(AI_SOURCES
         src/ai/ai_core.cpp
-        # src/ai/llama_engine.cpp
-        # src/ai/command_parser.cpp
-        # src/ai/system_monitor.cpp
     )
 else()
     set(AI_SOURCES)
@@ -117,6 +161,14 @@ set(NEX_HEADERS
     include/nex/config/config.h
 )
 
+# AI 头文件
+if(AI_ENABLED)
+    list(APPEND NEX_HEADERS
+        include/nex/ai/ai_core.h
+        include/nex/ai/ai_engine.h
+    )
+endif()
+
 # 平台特定源文件（目前这些文件还不存在，先注释掉）
 # if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 #     list(APPEND NEX_SOURCES src/platform/linux/linux_platform.cpp)
@@ -131,6 +183,12 @@ add_executable(nex ${SOURCES})
 
 # 链接库
 target_link_libraries(nex ${PLATFORM_LIBS})
+
+# 添加AI依赖库
+if(AI_ENABLED AND AI_LIBS)
+    target_link_libraries(nex ${AI_LIBS})
+    message("-- AI Libraries: ${AI_LIBS}")
+endif()
 
 # 安装配置
 install(TARGETS nex
