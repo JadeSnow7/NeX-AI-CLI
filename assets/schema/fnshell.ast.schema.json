@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FnShell AST",
+  "type": "object",
+  "required": ["type"],
+  "properties": {
+    "type": {"type": "string", "enum": ["Pipe", "Call", "Literal", "Identifier"]},
+    "left": {"$ref": "#/definitions/node"},
+    "right": {"$ref": "#/definitions/node"},
+    "name": {"type": "string"},
+    "args": {"type": "array", "items": {"$ref": "#/definitions/node"}},
+    "value": {}
+  },
+  "definitions": {
+    "node": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string"}
+      }
+    }
+  }
+}
+
+
+
+
+

@@ -1,0 +1,11 @@
+tools:
+  timeout_ms: 5000
+  shell:
+    whitelist: [ls, cat, echo, stat, wc, pwd, date]
+    max_output_bytes: 262144
+  fs:
+    sandbox_root: .
+    allow_write: true
+
+
+

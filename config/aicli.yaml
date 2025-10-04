@@ -1,0 +1,55 @@
+cli:
+  theme: default
+  history_size: 200
+  stream: true
+
+local_model:
+  model_dir: ${AICLI_MODEL_DIR:-models}
+  default_model: tiny-gguf
+  context_length: 4096
+  quant: Q4_K_M
+  gpu_layers: auto
+
+remote:
+  providers:
+    openai:
+      enabled: true
+      base_url: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      model: gpt-4o-mini
+      timeout_ms: 30000
+      retries: 2
+    gemini:
+      enabled: false
+      base_url: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com}
+      model: gemini-1.5-flash
+      timeout_ms: 30000
+      retries: 2
+
+routing:
+  max_cost_usd: 0.02
+  latency_budget_ms: 1500
+  input_token_threshold: 800
+  prefer_local: true
+  circuit_breaker:
+    failure_threshold: 5
+    reset_timeout_ms: 10000
+
+memory:
+  store_dir: ${AICLI_DATA_DIR:-data}
+  rag:
+    enabled: false
+    embedder: local-embed-small
+
+security:
+  fs_sandbox_root: .
+  allow_network: true
+  log_redaction: true
+
+telemetry:
+  sample_rate: 1.0
+  log_level: info
+
+
+
+
+

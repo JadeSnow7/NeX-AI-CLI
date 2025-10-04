@@ -1,0 +1,11 @@
+name: rag-local
+steps:
+  - embed: {model: local-embed-small}
+  - index: {type: sqlite}
+  - retrieve: {top_k: 5}
+  - answer: {model: tiny-gguf}
+
+
+
+
+

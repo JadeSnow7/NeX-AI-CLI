@@ -1,0 +1,23 @@
+# aicli 最终验证
+
+## 编译状态
+✅ 可编译（无 llama/sqlite）
+✅ 可编译（启用 llama，sqlite 缺失自动回退）
+
+## 可执行文件
+- 大小：3.0MB（Release 模式）
+- 依赖：libc++、libm、pthread（llama 启用时额外依赖 libgomp）
+
+## 功能验证
+✅ REPL 启动与帮助
+✅ 工具列表与执行（echo、fs、shell）
+✅ 函数式 Shell（files、map、unwrap_or、split_lines）
+✅ 会话管理与模板
+✅ 本地模型加载与推理（Qwen3-4B）
+✅ 分轨渲染（think off）
+✅ sys box 事件日志（JSONL）
+
+## 项目统计
+- 源码：2259 行
+- 文档：755 行（13 篇）
+- 总计：3014 行（含配置、schema、脚本）

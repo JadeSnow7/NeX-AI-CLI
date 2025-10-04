@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SysBox Event",
+  "type": "object",
+  "required": ["timestamp", "component", "level", "message"],
+  "properties": {
+    "timestamp": {"type": "string", "format": "date-time"},
+    "session_id": {"type": "string"},
+    "request_id": {"type": "string"},
+    "component": {"type": "string"},
+    "level": {"type": "string", "enum": ["trace", "debug", "info", "warn", "error"]},
+    "message": {"type": "string"},
+    "tags": {"type": "object", "additionalProperties": {"type": "string"}},
+    "payload": {"type": "object"}
+  }
+}
+
+
+
+
+

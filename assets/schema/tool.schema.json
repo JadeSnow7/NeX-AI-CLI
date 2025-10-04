@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tool Schema",
+  "type": "object",
+  "required": ["name", "description", "parameters"],
+  "properties": {
+    "name": {"type": "string"},
+    "description": {"type": "string"},
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {"type": "string", "enum": ["object"]},
+        "properties": {"type": "object"},
+        "required": {"type": "array", "items": {"type": "string"}},
+        "additionalProperties": {"type": "boolean"}
+      }
+    }
+  }
+}
+
+
+
+
+

@@ -1,0 +1,10 @@
+name: code-refactor
+steps:
+  - analyze: {provider: openai, model: gpt-4o-mini}
+  - plan: {style: conservative}
+  - apply: {mode: patch}
+
+
+
+
+
